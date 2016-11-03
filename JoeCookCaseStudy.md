@@ -99,14 +99,14 @@ The number of country codes that match is: 188.
 
 ```r
 #Question 2
-
+#order the group by the GDP asc
 asc.GDP <- GDP.Edu[order(GDP.Edu$GDP.in.US.Dollars.2012),]
 ```
 St. Kitts and Nevis is the Country with the 13th lowest GDP in the dataset.
 
 ```r
 #Question 3
-
+#subset and then find the average
 High.income.OECD <- GDP.Edu[GDP.Edu$Income.Group=="High income: OECD",]
 average.Rank.High.income.OECD <- mean(High.income.OECD$GDP.Rank)
 High.income.non.OECD <- GDP.Edu[GDP.Edu$Income.Group=="High income: nonOECD",]
@@ -132,8 +132,12 @@ As we can see from the plot most countries have a very similar GDP.  Only the To
 
 ```r
 #Question 5
+#Use the cut function and adding labels to make the groups easier to parse later
 quintiles <- cut(GDP.Edu$GDP.Rank,breaks=c(0,38.1,76.1,114.1,152.1,190.1),labels= c(1,2,3,4,5))
 GDP.Edu$Group <- as.character(quintiles)
 GDP.lower.middle.income.1 <- GDP.Edu[GDP.Edu$Income.Group=="Lower middle income" & GDP.Edu$Group=="1",]
 ```
 Of the 38 highest ranked countries 5 are lower middle income Countries.
+
+#Conclusion
+As the analysis shows the data is clean and ready to use for future analysis.  The data has become tidy data and effectively merges the two data sets.  We can now use this data to study different countries and how their income relates to their GDP, income level, and GDP rank with other countries.
