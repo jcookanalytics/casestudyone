@@ -1,0 +1,103 @@
+---
+title: "Case Study Write Up"
+author: "Joseph Cook"
+date: "November 2, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Introduction
+This analysis of 2012 GDP data combined with 2012 education rankings shows the relationship between GDP and the income group from the education rankings.  The first step that will be shown is how to clean and merge the data in R. Then an analysis will provide the results of the two data sets and show their relationship.
+
+##Collecting and Merging the data
+```{r makefile}
+#First we need to load the repmis package to gain access to the stored data
+#load repmis package
+library(repmis)
+
+### Loading and Cleaning the GDP data
+#loading the 2012 GDP raw data
+GDP <- source_data("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FGDP.csv")
+
+#After we have retrieved the data we need to clean up
+#subset the data to exclude extra columns
+GDP.clean <- GDP[,c(1:2,4:5)]
+
+#rename the columns
+colnames(GDP.clean) <- c("CountryCode","GDP.Rank","Country","GDP.in.US.Dollars.2012")
+
+#Subset to remove blank rows and notes
+GDP.clean <- GDP.clean[GDP.clean$CountryCode!="",]
+GDP.clean <- GDP.clean[GDP.clean$GDP.Rank!="",]
+
+#Change GDP ranking to numeric to allow correct sorting
+GDP.clean <- transform(GDP.clean, GDP.Rank = as.numeric(GDP.Rank))
+
+#Change GDP in US dollars to be a number by substituting all the commas out and changing the class to numeric
+GDP.clean <- transform(GDP.clean, GDP.in.US.Dollars.2012 = as.numeric(gsub(",","",GDP.in.US.Dollars.2012)))
+
+
+### Loading and Cleaning the Education data
+#loading the 2012 GDP raw data
+EduData <- source_data("https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv")
+
+#remove all the rows that are aggregates of incomes and regions
+EduData.clean <- EduData[-grep("aggregate",EduData$`Special Notes`),]
+
+#remove the extra columns that are not being used in the analysis
+EduData.clean <- EduData.clean[,c(1,3)]
+
+#rename the table to have names that are easier for r to use
+names(EduData.clean) <- c("CountryCode","Income.Group")
+
+###### We will now merge the data sets
+#Merge the data together
+#Do not use all = TRUE.  This will cause to lose the data for the first question
+GDP.Edu <- merge(x=GDP.clean, y=EduData.clean,by="CountryCode")
+
+```
+##Analysis
+```{r Analysis}
+#Question 1
+#Showing the number of countries that match from the datasets
+matches <- nrow(GDP.Edu)
+```
+`r paste("The number of country codes that match is:",matches)`.
+```{r }
+#Question 2
+
+asc.GDP <- GDP.Edu[order(GDP.Edu$GDP.in.US.Dollars.2012),]
+```
+`r asc.GDP[13,"Country"]` is the Country with the 13th lowest GDP in the dataset.
+```{r }
+#Question 3
+
+High.income.OECD <- GDP.Edu[GDP.Edu$Income.Group=="High income: OECD",]
+average.Rank.High.income.OECD <- mean(High.income.OECD$GDP.Rank)
+High.income.non.OECD <- GDP.Edu[GDP.Edu$Income.Group=="High income: nonOECD",]
+average.Rank.High.income.non.OECD <- mean(High.income.non.OECD$GDP.Rank)
+```
+
+The average ranking for high income OECD is `r round(average.Rank.High.income.OECD,2)`.  The average ranking for high income non OECD is `r round(average.Rank.High.income.non.OECD,2)`. As we can see there is a clear difference in the GDP rankings between these groups.  Dispite both being grouped as high income.
+
+
+```{r question4, fig.width=10}
+#Question 4
+#adding additional libraries to plot the GDP data
+library(ggplot2)
+library(scales)
+#Plotted by Rank instead of by Country as it would include all the countries and plot looked a lot cleaner
+#interpretion of each data point also makes a lot more sense
+ggplot(data=GDP.Edu, aes(x=-GDP.Rank,y=GDP.in.US.Dollars.2012, color = factor(Income.Group)))+ geom_point()+ labs(x="Country Rank",y="GDP in Millions US") + theme(legend.title = element_text(color = "black", size=16, face="bold")) + scale_color_discrete(name="Income Group") + scale_y_continuous(labels= comma)
+```
+As we can see from the plot most countries have a very similar GDP.  Only the Top 6 even reach a GDP over over 2.5 trillion US dollars.  There is not significant increase in GDP.  
+```{r}               
+#Question 5
+quintiles <- cut(GDP.Edu$GDP.Rank,breaks=c(0,38.1,76.1,114.1,152.1,190.1),labels= c(1,2,3,4,5))
+GDP.Edu$Group <- as.character(quintiles)
+GDP.lower.middle.income.1 <- GDP.Edu[GDP.Edu$Income.Group=="Lower middle income" & GDP.Edu$Group=="1",]
+```
+Of the 38 highest ranked countries `r nrow(GDP.lower.middle.income.1)` are lower middle income Countries.
